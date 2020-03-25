@@ -153,7 +153,7 @@ static int engine_init_display(struct engine* engine) {
     // Initialize GL state.
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
     glEnable(GL_CULL_FACE);
-    glShadeModel(GL_SMOOTH);
+    //glShadeModel(GL_SMOOTH);
     glDisable(GL_DEPTH_TEST);
 
     return 0;
@@ -312,28 +312,28 @@ ASensorManager* AcquireASensorManagerInstance(android_app* app) {
  * android_native_app_glue.  It runs in its own thread, with its own
  * event loop for receiving input events and doing other things.
  */
-void android_main(struct android_app* state) {
+void android_main(struct android_app* pApp) {
     struct engine engine{};
 
     memset(&engine, 0, sizeof(engine));
-    state->userData = &engine;
-    state->onAppCmd = engine_handle_cmd;
-    state->onInputEvent = engine_handle_input;
-    engine.app = state;
+    pApp->userData = &engine;
+    pApp->onAppCmd = engine_handle_cmd;
+    pApp->onInputEvent = engine_handle_input;
+    engine.app = pApp;
 
     // Prepare to monitor accelerometer
-    engine.sensorManager = AcquireASensorManagerInstance(state);
+    engine.sensorManager = AcquireASensorManagerInstance(pApp);
     engine.accelerometerSensor = ASensorManager_getDefaultSensor(
                                         engine.sensorManager,
                                         ASENSOR_TYPE_ACCELEROMETER);
     engine.sensorEventQueue = ASensorManager_createEventQueue(
                                     engine.sensorManager,
-                                    state->looper, LOOPER_ID_USER,
+                                    pApp->looper, LOOPER_ID_USER,
                                     nullptr, nullptr);
 
-    if (state->savedState != nullptr) {
+    if (pApp->savedState != nullptr) {
         // We are starting with a previous saved state; restore from it.
-        engine.state = *(struct saved_state*)state->savedState;
+        engine.state = *(struct saved_state*)pApp->savedState;
     }
 
     // loop waiting for stuff to do.
@@ -352,7 +352,7 @@ void android_main(struct android_app* state) {
 
             // Process this event.
             if (source != nullptr) {
-                source->process(state, source);
+                source->process(pApp, source);
             }
 
             // If a sensor has data, process it now.
@@ -369,7 +369,7 @@ void android_main(struct android_app* state) {
             }
 
             // Check if we are exiting.
-            if (state->destroyRequested != 0) {
+            if (pApp->destroyRequested != 0) {
                 engine_term_display(&engine);
                 return;
             }
